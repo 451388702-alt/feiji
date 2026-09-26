@@ -18,7 +18,7 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import zipfile, hashlib
+          import zipfile, hashlib, os
           archive = Path('PathVeil-0.1.0-source.zip')
           assert hashlib.sha256(archive.read_bytes()).hexdigest() == '47e0243cf3cf5c352c0b2ac84e035a30140869edc65b9e32a1231b2f08c7c71a'
           destination = Path('source').resolve()
@@ -27,6 +27,14 @@ jobs:
                   if not (destination / name).resolve().is_relative_to(destination):
                       raise ValueError('Unsafe source archive entry')
               z.extractall(destination)
+          sdk = Path(os.environ['ANDROID_HOME'])
+          installed = sorted((sdk / 'ndk').glob('*/source.properties'), key=lambda p: tuple(int(x) for x in p.parent.name.split('.')))
+          if not installed:
+              raise RuntimeError('No preinstalled Android NDK found')
+          ndk = installed[-1].parent.name
+          config = destination / 'PathVeil/app/build.gradle.kts'
+          config.write_text(config.read_text().replace('ndkVersion = "30.0.15729638"', f'ndkVersion = "{ndk}"'))
+          print('Using preinstalled NDK:', ndk)
           PY
       - name: Build signed debug APK
         working-directory: source/PathVeil
