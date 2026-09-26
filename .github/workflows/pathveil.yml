@@ -35,6 +35,12 @@ jobs:
           config = destination / 'PathVeil/app/build.gradle.kts'
           config.write_text(config.read_text().replace('ndkVersion = "30.0.15729638"', f'ndkVersion = "{ndk}"'))
           print('Using preinstalled NDK:', ndk)
+          native = destination / 'PathVeil/app/src/main/cpp/fusehide/hooks/fuse_wrappers.cpp'
+          before = 'reinterpret_cast<GetValueDirectoryEntriesFn>(gOriginalGetDirectoryEntries.get())'
+          after = 'reinterpret_cast<GetValueDirectoryEntriesFn>(gOriginalGetDirectoryEntries.rawStorage())'
+          code = native.read_text()
+          assert code.count(before) == 1
+          native.write_text(code.replace(before, after))
           PY
       - name: Build signed debug APK
         working-directory: source/PathVeil
